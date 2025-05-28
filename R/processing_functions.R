@@ -101,10 +101,28 @@ construct_validation_df = function(detrend_win = 0, smooth_win = 0,
   validation_data = read_csv(validation_table_path, show_col_types = FALSE) %>%
     filter(complete.cases(.))
 
+  if ("stakeholder" %in% names(validation_data) & "topic" %in% names(validation_data)){
+
+      validation_data = validation_data %>%
+        mutate(sentiment_df = map2(stakeholder, topic,
+                                   ~get_sentiment_df(numeric_sentiment_df, .x, .y)))
+
+    } else if ("topic" %in% names(validation_data)){
+
+      validation_data = validation_data %>%
+        mutate(sentiment_df = map(topic,
+                                   ~get_sentiment_df(numeric_sentiment_df, topic = .x)))
+
+    } else if ("stakeholder" %in% names(validation_data)){
+
+      validation_data = validation_data %>%
+        mutate(sentiment_df = map(topic,
+                                  ~get_sentiment_df(numeric_sentiment_df, stakeholder = .x)))
+  }
+
+
   validation_data = validation_data %>%
     mutate(
-      sentiment_df = map2(stakeholder, topic,
-                          ~get_sentiment_df(numeric_sentiment_df, .x, .y)),
       benchmark_df = map2(indicator, indicator_type,
                           ~get_benchmark_df(.x, .y, benchmark_folder_path, is_fusion_format)),
       comparison_df = map2(sentiment_df, benchmark_df,
@@ -123,13 +141,30 @@ get_benchmark_df = function(indicator_name, indicator_type, folder_path, is_fusi
 
 }
 
-get_sentiment_df = function(sentiment_df, stakeholder_val, topic_val) {
+get_sentiment_df = function(sentiment_df, stakeholder_val = NULL, topic_val = NULL) {
 
-  filtered_sentiment_df = sentiment_df %>%
-    filter(stakeholder == stakeholder_val) %>%
-    filter(topic == topic_val) %>%
+
+  filtered_sentiment_df = sentiment_df
+
+  if(!is.null(stakeholder_val)){
+
+    filtered_sentiment_df = filtered_sentiment_df %>%
+      filter(stakeholder == stakeholder_val)
+
+  }
+
+  if(!is.null(topic_val)){
+
+    filtered_sentiment_df = filtered_sentiment_df %>%
+      filter(topic == topic_val)
+
+  }
+
+
+  filtered_sentiment_df = filtered_sentiment_df %>%
     select(date, sentiment_num)
 
   return(filtered_sentiment_df)
+
 }
 
