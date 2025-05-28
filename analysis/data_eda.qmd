@@ -1,0 +1,87 @@
+---
+title: "Data EDA"
+format:
+  revealjs:
+    margin: 0
+execute:
+    error: false
+    message: false
+    warning: false
+---
+
+
+```{r libraries}
+
+library(tidyverse)
+
+library(gt)
+
+devtools::load_all()
+
+```
+
+
+```{r params}
+
+params = list()
+
+params$stakeholders = c('employees',
+                        'unemployed',
+                        'employers',
+                        'government',
+                        'labor unions')
+
+params$topics = c(
+  'employment',
+  'unemployment',
+  'job vacancies',
+  'minimum wage',
+  'working hours',
+  'layoffs',
+  'average wage',
+  'deficit'
+) 
+
+params$detrend_win = 2
+
+params$smooth_win = 3
+
+params$roll_cor_win = 5
+
+```
+
+
+
+```{r load_data}
+
+data_dir_path = paste0(Sys.getenv("USERPROFILE"),
+                       "\\OneDrive - Bank Of Israel\\current_work",
+                       "\\real estate sentiment\\data\\labor_market")
+
+files_list = list.files(data_dir_path,
+                        pattern = "*.rds")
+
+data_df = tibble(name = files_list) %>% 
+  mutate(df = map(name, ~import_sentiment_df(paste0(data_dir_path, "\\",.))))
+
+```
+
+```{r summary_stats}
+
+data_df %>% 
+  mutate(summary_df = map(df, function(temp_df){
+    
+    sum_df = tibble(date_min = min(temp_df$date),
+                    date_max = max(temp_df$date),
+                    unique_articles = length(unique(temp_df$article_id)))
+    
+    return(sum_df)
+    
+    
+  })) %>% 
+  select(name, summary_df) %>% 
+  unnest(summary_df) %>% 
+  gt()
+
+```
+

@@ -1,0 +1,137 @@
+---
+title: "Labor Market"
+format:
+  revealjs:
+    margin: 0
+execute:
+    error: false
+    message: false
+    warning: false
+---
+
+```{r load_libraries}
+
+library(tidyverse)
+
+library(gt)
+
+library(slider)
+
+devtools::load_all()
+
+```
+
+```{r params}
+
+params = list()
+
+params$stakeholders = c('employees',
+                        'unemployed',
+                        'employers',
+                        'government',
+                        'labor unions')
+
+params$topics = c(
+  'employment',
+  'unemployment',
+  'job vacancies',
+  'minimum wage',
+  'working hours',
+  'layoffs',
+  'average wage',
+  'deficit'
+) 
+
+params$detrend_win = 2
+
+params$smooth_win = 3
+
+params$roll_cor_win = 5
+
+```
+
+
+
+```{r load_data}
+
+
+dir_path = paste0("C:\\Users\\internet\\",
+                   "OneDrive - Bank Of Israel\\current_work",
+                   "\\real estate sentiment\\data\\labor_market",
+                   "\\")
+
+model_names = tribble(~model_name,~file_name,
+                      "4o","labor_sentiment_4o_21_05_2025.rds",
+                      "4o-mini","labor_sentiment_4o-mini_02_02_2025.rds")
+
+sentiment_df = model_names %>% 
+  mutate(df = map(file_name, ~import_sentiment_df(file_path = paste0(dir_path, .x),
+                                                  params))) %>% 
+  select(-file_name)
+
+
+```
+
+```{r validation}
+
+val_table_path = paste0(Sys.getenv("USERPROFILE"),
+                        "\\OneDrive - Bank Of Israel\\",
+                        "current_work\\real estate sentiment\\validation",
+                        "\\labor_market\\labor_market_indicator_correspondence.csv")
+
+indicator_path = paste0(Sys.getenv("USERPROFILE"),
+                        "\\OneDrive - Bank Of Israel\\",
+                        "current_work\\real estate sentiment\\data",
+                        "\\labor_market\\")
+
+
+validation_df = sentiment_df %>% 
+  mutate(valid = map(df, ~construct_validation_df(detrend_win = params$detrend_win,
+                                          smooth_win = params$smooth_win,
+                                          validation_table_path = val_table_path,
+                                          benchmark_folder_path = indicator_path,
+                                          numeric_sentiment_df = .x,
+                                          is_fusion_format = TRUE))) %>% 
+  select(model_name, valid) %>% 
+  unnest(cols = "valid")
+
+
+```
+
+
+```{r correlations}
+
+validation_df = validation_df %>%
+  mutate(cor_df = map(comparison_df,
+                        function(temp_df){
+                          
+                          temp_df = temp_df %>% 
+                            mutate(cor = slide2_dbl(sentiment_num,
+                                                    benchmark,
+                                                    cor,
+                                                    .before = params$roll_cor_win * 12,
+                                                    .complete = TRUE))
+                          temp_df = temp_df %>% 
+                            select(date, cor)
+                          
+                          return(temp_df)
+                        }))
+
+
+```
+
+```{r plot_correlations}
+
+validation_df  %>% 
+  filter(stakeholder == "employees") %>% 
+  filter(model_name == "4o") %>% 
+  filter(topic == "job vacancies") %>% 
+  select(cor_df) %>% 
+  unnest(cor_df) %>% 
+  ggplot(aes(date, cor)) + 
+  geom_line()
+  
+
+
+```
+
