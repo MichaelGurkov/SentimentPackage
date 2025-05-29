@@ -123,8 +123,10 @@ construct_validation_df = function(detrend_win = 0, smooth_win = 0,
 
   validation_data = validation_data %>%
     mutate(
-      benchmark_df = map2(indicator, indicator_type,
-                          ~get_benchmark_df(.x, .y, benchmark_folder_path, is_fusion_format)),
+      benchmark_df = map(indicator,
+                          ~get_benchmark_df(indicator_name = .x,
+                                            folder_path = benchmark_folder_path,
+                                            is_fusion = is_fusion_format)),
       comparison_df = map2(sentiment_df, benchmark_df,
                            ~make_comparison_df(.x, .y, detrend = detrend_win, smooth_win = smooth_win))
     )
@@ -132,7 +134,7 @@ construct_validation_df = function(detrend_win = 0, smooth_win = 0,
   return(validation_data)
 }
 
-get_benchmark_df = function(indicator_name, indicator_type, folder_path, is_fusion) {
+get_benchmark_df = function(indicator_name, folder_path, is_fusion) {
 
   benchmark_df = import_economic_indicator(indicator_name,
                             folder_path = folder_path,
