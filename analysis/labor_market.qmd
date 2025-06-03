@@ -2,6 +2,7 @@
 title: "Labor Market"
 format:
   revealjs:
+    slide-level: 3
     margin: 0
 execute:
     error: false
@@ -21,17 +22,21 @@ devtools::load_all()
 
 ```
 
-```{r params}
+<!-- Params -->
+
+```{r params_general}
 
 params = list()
 
-params$stakeholders = c('employees',
+params$general = list()
+
+params$general$stakeholders = c('employees',
                         'unemployed',
                         'employers',
                         'government',
                         'labor unions')
 
-params$topics = c(
+params$general$topics = c(
   'employment',
   'unemployment',
   'job vacancies',
@@ -42,17 +47,68 @@ params$topics = c(
   'deficit'
 ) 
 
-params$detrend_win = 2
+params$general$detrend_win = 2
 
-params$smooth_win = 3
+params$general$smooth_win = 3
 
-params$roll_cor_win = 5
+params$general$roll_cor_win = 5
 
 ```
 
 
+```{r params_hightech}
 
-```{r load_data}
+params$hightech = list()
+
+
+params$hightech$topics = c(
+  'employment',
+  'unemployment',
+  'job vacancies',
+  'minimum wage',
+  'working hours',
+  'layoffs',
+  'average wage',
+  'deficit'
+) 
+
+params$hightech$detrend_win = 2
+
+params$hightech$smooth_win = 5
+
+params$hightech$roll_cor_win = 5
+
+```
+
+
+```{r params_construction}
+
+params$construction = list()
+
+
+params$construction$topics = c(
+  'employment',
+  'unemployment',
+  'job vacancies',
+  'minimum wage',
+  'working hours',
+  'layoffs',
+  'average wage',
+  'deficit'
+) 
+
+params$construction$detrend_win = 2
+
+params$construction$smooth_win = 5
+
+params$construction$roll_cor_win = 5
+
+```
+
+
+<!-- Load data -->
+
+```{r load_data_general}
 
 file_path = paste0("C:\\Users\\internet\\",
                    "OneDrive - Bank Of Israel\\current_work",
@@ -60,12 +116,43 @@ file_path = paste0("C:\\Users\\internet\\",
                    "\\labor_sentiment_4o_21_05_2025.rds")
 
 
-sentiment_df = import_sentiment_df(file_path, params)
+sentiment_df = import_sentiment_df(file_path, params$general)
 
 
 ```
 
-```{r validation}
+
+```{r load_data_high_tech}
+
+file_path_hightech = paste0("C:\\Users\\internet\\",
+                   "OneDrive - Bank Of Israel\\current_work",
+                   "\\real estate sentiment\\data\\labor_market\\sectors",
+                   "\\hightech\\labor_sentiment_hightech_4o-mini_25_05_2025.rds")
+
+
+
+
+sentiment_df_hightech = import_sentiment_df(file_path_hightech)
+
+
+```
+
+
+```{r load_data_construction}
+
+file_path_construction = paste0("C:\\Users\\internet\\",
+                   "OneDrive - Bank Of Israel\\current_work",
+                   "\\real estate sentiment\\data\\labor_market\\sectors",
+                   "\\construction\\sentiment_df_4o-mini_03_06_25.rds")
+
+
+sentiment_df_construction = import_sentiment_df(file_path_construction)
+
+
+```
+
+
+```{r validation_general}
 
 val_table_path = paste0(Sys.getenv("USERPROFILE"),
                         "\\OneDrive - Bank Of Israel\\",
@@ -78,8 +165,8 @@ indicator_path = paste0(Sys.getenv("USERPROFILE"),
                         "\\labor_market\\")
 
 
-validation_data = construct_validation_df(detrend_win = params$detrend_win,
-                                          smooth_win = params$smooth_win,
+validation_data = construct_validation_df(detrend_win = params$general$detrend_win,
+                                          smooth_win = params$general$smooth_win,
                                           validation_table_path = val_table_path,
                                           benchmark_folder_path = indicator_path,
                                           numeric_sentiment_df = sentiment_df,
@@ -89,13 +176,435 @@ validation_data = construct_validation_df(detrend_win = params$detrend_win,
 ```
 
 
-##
+```{r validation_high_tech}
+
+val_table_hightech_path = paste0(Sys.getenv("USERPROFILE"),
+                        "\\OneDrive - Bank Of Israel\\",
+                        "current_work\\real estate sentiment\\data\\labor_market\\sectors\\",
+                        "hightech\\labor_market_hightech_indicator_correspondence.csv")
+
+indicator_hightech_path = paste0(Sys.getenv("USERPROFILE"),
+                        "\\OneDrive - Bank Of Israel\\",
+                        "current_work\\real estate sentiment\\data",
+                        "\\labor_market\\sectors\\hightech\\")
+
+
+validation_data_hightech = construct_validation_df(detrend_win = params$construction$detrend_win,
+                                          smooth_win = params$construction$smooth_win,
+                                          validation_table_path = val_table_hightech_path,
+                                          benchmark_folder_path = indicator_hightech_path,
+                                          numeric_sentiment_df = sentiment_df_hightech,
+                                          is_fusion_format = FALSE)
+
+
+```
+
+
+
+```{r validation_construction}
+
+val_table_construction_path = paste0(Sys.getenv("USERPROFILE"),
+                        "\\OneDrive - Bank Of Israel\\",
+                        "current_work\\real estate sentiment\\data\\labor_market\\sectors\\",
+                        "construction\\labor_market_construction_indicator_correspondence.csv")
+
+indicator_construction_path = paste0(Sys.getenv("USERPROFILE"),
+                        "\\OneDrive - Bank Of Israel\\",
+                        "current_work\\real estate sentiment\\data",
+                        "\\labor_market\\sectors\\construction\\")
+
+
+validation_data_construction = construct_validation_df(detrend_win = params$construction$detrend_win,
+                                          smooth_win = params$construction$smooth_win,
+                                          validation_table_path = val_table_construction_path,
+                                          benchmark_folder_path = indicator_construction_path,
+                                          numeric_sentiment_df = sentiment_df_construction,
+                                          is_fusion_format = FALSE)
+
+
+```
+
+
+
+
+# General 
+### Daily distribution
+
+```{r plot_all_article_distribution_daily}
+
+sentiment_df %>% 
+  select(date, article_id) %>% 
+  distinct() %>% 
+  count(date) %>% 
+  ggplot(aes(date, n)) + 
+  geom_col() + 
+  xlab(NULL) + ylab(NULL) + ggtitle("Number of unique articles (daily, including irrelevant)")
+
+```
+
+
+
+
+### Monthly distribution
+
+```{r plot_relevant_article_distribution_monthly}
+
+sentiment_df %>% 
+  filter(!sentiment %in% c("irrelevant", "null")) %>% 
+  mutate(date = as.yearmon(date)) %>% 
+  select(date, article_id) %>% 
+  distinct() %>% 
+  count(date) %>% 
+  ggplot(aes(date, n)) + 
+  geom_col() + 
+  xlab(NULL) + ylab(NULL) + ggtitle("Number of unique articles (monthly, relevant only)")
+
+
+```
+
+
+
+
+
+### Sentiment matrix
+
+```{r sentiment_matrix}
+
+ sentiment_df %>% 
+  group_by(date = as.yearmon(date),stakeholder, topic) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop")%>% 
+  group_by(stakeholder, topic) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop") %>% 
+  ggplot(aes(topic, stakeholder)) + 
+  geom_tile() +
+  geom_tile(aes(fill = sentiment_num)) +
+  geom_text(aes(label = round(sentiment_num,2))) + 
+  scale_fill_gradientn(colors = c("red", "yellow", "green")) + 
+  xlab(NULL) + ylab(NULL) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  NULL
+
+```
+
+### Correlation matrix
+
+```{r}
+
+validation_data %>% 
+  select(stakeholder, topic, comparison_df) %>% 
+  unnest(cols = c("stakeholder", "topic", "comparison_df")) %>% 
+  group_by(stakeholder, topic) %>% 
+  summarise(cor = cor(sentiment_num,benchmark), .groups = "drop") %>% 
+  ggplot(aes(topic, stakeholder)) + 
+  geom_tile() +
+  geom_tile(aes(fill = as.character(abs(cor >= 0.4)))) +
+  geom_text(aes(label = round(cor,2)), size = 5) + 
+  scale_fill_manual(values = c("white", "lightblue")) + 
+  xlab(NULL) + ylab(NULL) + 
+  theme(axis.text.x = element_text(angle = 90), legend.position = "none") + 
+  NULL
+
+```
+
+
+
+
+## Government
+
+###  Government - Benchmark comparison
+
+```{r plot_government}
+
+validation_data %>%
+  filter(stakeholder == "government") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
+  mutate(across(c("sentiment_num", "benchmark"), scale)) %>%
+  ungroup() %>%
+  pivot_longer(-c(date, topic)) %>%
+  ggplot(aes(date, value, color = name)) +
+  geom_line() +
+  facet_wrap(~topic, scale = "free")
+
+```
+
+###  Government - Rolling correlation
+
+```{r rolling_correlation_government}
+
+
+validation_data %>% 
+  filter(stakeholder == "government") %>% 
+  select(topic, comparison_df) %>% 
+  unnest(cols = c("topic", "comparison_df")) %>% 
+  group_by(topic) %>% 
+  mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
+                          .before = params$general$roll_cor_win * 12, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  ggplot(aes(date, roll_cor)) + 
+  geom_line() + 
+  facet_wrap(~topic, scale = "free")
+
+
+```
+
+
+
+
+
+# High tech sector
+
+### Sentiment matrix
+
+```{r sentiment_matrix_high_tech}
+
+ sentiment_df_hightech %>% 
+  group_by(date = as.yearmon(date), topic) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop")%>% 
+  group_by(topic) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop") %>% 
+  ggplot(aes(sentiment_num,reorder(topic, sentiment_num))) + 
+  geom_col() +
+  geom_text(aes(label = round(sentiment_num,2)), hjust = 1) +
+  xlab(NULL) + ylab(NULL) + ggtitle("Sentiment by topics") + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  NULL
+
+```
+
+### Correlation matrix - High tech
+
+```{r cor_matrix_high_tech}
+
+validation_data_hightech %>% 
+  select(indicator, topic, comparison_df) %>% 
+  unnest(cols = c("indicator", "topic", "comparison_df")) %>% 
+  group_by(indicator, topic) %>% 
+  summarise(cor = cor(sentiment_num,benchmark), .groups = "drop") %>% 
+  ggplot(aes(topic, indicator)) + 
+  geom_tile() +
+  geom_tile(aes(fill = cor)) +
+  geom_text(aes(label = round(cor,2))) + 
+  scale_fill_gradientn(colors = c("red", "yellow", "green")) + 
+  xlab(NULL) + ylab(NULL) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  NULL
+
+```
+
+
+
+### Job vacancies - Benchmark comparison
+
+```{r }
+
+validation_data_hightech %>% 
+  filter(topic == "job vacancies") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(across(c("sentiment_num", "benchmark"), ~scale(.)[,1])) %>%
+  ungroup() %>% 
+  pivot_longer(cols = c("sentiment_num", "benchmark")) %>% 
+  ggplot(aes(date, value, color = name)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scales = "free")
+
+```
+
+
+### Job vacancies - Rolling correlation
+
+```{r rolling_correlation_job_vacancies_hightech}
+
+
+validation_data_hightech %>% 
+  filter(topic == "job vacancies") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
+                          .before = params$hightech$roll_cor_win * 12, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  ggplot(aes(date, roll_cor)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scale = "free")
+
+
+```
+
+
+### Average wage - Benchmark comparison
+
+```{r}
+
+validation_data_hightech %>% 
+  filter(topic == "average wage") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(across(c("sentiment_num", "benchmark"), ~scale(.)[,1])) %>%
+  ungroup() %>% 
+  pivot_longer(cols = c("sentiment_num", "benchmark")) %>% 
+  ggplot(aes(date, value, color = name)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scales = "free")
+
+```
+
+### Average wage - Rolling correlation
+
+```{r rolling_correlation_average_wage_hightech}
+
+
+validation_data_hightech %>% 
+  filter(topic == "average wage") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
+                          .before = params$hightech$roll_cor_win * 12, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  ggplot(aes(date, roll_cor)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scale = "free")
+
+
+```
+
+
+# Construction sector
+### Sentiment matrix
+
+```{r sentiment_matrix_construction}
+
+ sentiment_df_construction %>% 
+  group_by(date = as.yearmon(date), topic) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop")%>% 
+  group_by(topic) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop") %>% 
+  ggplot(aes(sentiment_num,reorder(topic, sentiment_num))) + 
+  geom_col() +
+  geom_text(aes(label = round(sentiment_num,2)), hjust = 1) +
+  xlab(NULL) + ylab(NULL) + ggtitle("Sentiment by topics") + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  NULL
+
+```
+
+### Correlation matrix - High tech
+
+```{r cor_matrix_construction}
+
+validation_data_construction %>% 
+  select(indicator, topic, comparison_df) %>% 
+  unnest(cols = c("indicator", "topic", "comparison_df")) %>% 
+  group_by(indicator, topic) %>% 
+  summarise(cor = cor(sentiment_num,benchmark), .groups = "drop") %>% 
+  ggplot(aes(topic, indicator)) + 
+  geom_tile() +
+  geom_tile(aes(fill = cor)) +
+  geom_text(aes(label = round(cor,2))) + 
+  scale_fill_gradientn(colors = c("red", "yellow", "green")) + 
+  xlab(NULL) + ylab(NULL) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  NULL
+
+```
+
+
+
+### Job vacancies - Benchmark comparison
+
+```{r }
+
+validation_data_construction %>% 
+  filter(topic == "job vacancies") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(across(c("sentiment_num", "benchmark"), ~scale(.)[,1])) %>%
+  ungroup() %>% 
+  pivot_longer(cols = c("sentiment_num", "benchmark")) %>% 
+  ggplot(aes(date, value, color = name)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scales = "free")
+
+```
+
+
+### Job vacancies - Rolling correlation
+
+```{r rolling_correlation_job_vacancies_construction}
+
+
+validation_data_construction %>% 
+  filter(topic == "job vacancies") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
+                          .before = params$construction$roll_cor_win * 12, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  ggplot(aes(date, roll_cor)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scale = "free")
+
+
+```
+
+
+### Average wage - Benchmark comparison
+
+```{r}
+
+validation_data_construction %>% 
+  filter(topic == "average wage") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(across(c("sentiment_num", "benchmark"), ~scale(.)[,1])) %>%
+  ungroup() %>% 
+  pivot_longer(cols = c("sentiment_num", "benchmark")) %>% 
+  ggplot(aes(date, value, color = name)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scales = "free")
+
+```
+
+### Average wage - Rolling correlation
+
+```{r rolling_correlation_average_wage_construction}
+
+
+validation_data_construction %>% 
+  filter(topic == "average wage") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
+                          .before = params$construction$roll_cor_win * 12, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  ggplot(aes(date, roll_cor)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scale = "free")
+
+
+```
+
+
+
+
+# Appendix
+
+### Benchmark table
 
 ```{r plot_comparison_table}
 
 validation_data %>% 
   filter(indicator_type == "hard") %>%
-  select(indicator_type,topic, indicator) %>% 
+  select(topic, indicator) %>% 
   distinct() %>% 
   mutate(indicator = as_factor(indicator)) %>% 
   gt() %>% 
@@ -119,366 +628,180 @@ validation_data %>%
 
 
 
-##
-
-```{r plot_all_article_distribution_daily}
-
-sentiment_df %>% 
-  select(date, article_id) %>% 
-  distinct() %>% 
-  count(date) %>% 
-  ggplot(aes(date, n)) + 
-  geom_col() + 
-  xlab(NULL) + ylab(NULL) + ggtitle("Number of unique articles (daily, including irrelevant)")
-
-```
 
 
+## Employees
 
-
-##
-
-```{r plot_relevant_article_distribution_monthly}
-
-sentiment_df %>% 
-  filter(!sentiment %in% c("irrelevant", "null")) %>% 
-  mutate(date = as.yearmon(date)) %>% 
-  select(date, article_id) %>% 
-  distinct() %>% 
-  count(date) %>% 
-  ggplot(aes(date, n)) + 
-  geom_col() + 
-  xlab(NULL) + ylab(NULL) + ggtitle("Number of unique articles (monthly, relevant only)")
-
-
-```
-
-
-
-
-
-# Sentiment matrix
-
-```{r sentiment_matrix}
-
- sentiment_df %>% 
-  group_by(date = as.yearmon(date),stakeholder, topic) %>% 
-  summarise(sentiment_num = mean(sentiment_num), .groups = "drop")%>% 
-  group_by(stakeholder, topic) %>% 
-  summarise(sentiment_num = mean(sentiment_num), .groups = "drop") %>% 
-  ggplot(aes(topic, stakeholder)) + 
-  geom_tile() +
-  geom_tile(aes(fill = sentiment_num)) +
-  geom_text(aes(label = round(sentiment_num,2))) + 
-  scale_fill_gradientn(colors = c("red", "yellow", "green")) + 
-  xlab(NULL) + ylab(NULL) + 
-  theme(axis.text.x = element_text(angle = 90)) + 
-  NULL
-
-```
-
-# Correlation matrix
-
-```{r}
-
-validation_data %>% 
-  select(stakeholder, topic, comparison_df) %>% 
-  unnest(cols = c("stakeholder", "topic", "comparison_df")) %>% 
-  group_by(stakeholder, topic) %>% 
-  summarise(cor = cor(sentiment_num,benchmark), .groups = "drop") %>% 
-  ggplot(aes(topic, stakeholder)) + 
-  geom_tile() +
-  geom_tile(aes(fill = cor)) +
-  geom_text(aes(label = round(cor,2))) + 
-  scale_fill_gradientn(colors = c("red", "yellow", "green")) + 
-  xlab(NULL) + ylab(NULL) + 
-  theme(axis.text.x = element_text(angle = 90)) + 
-  NULL
-
-```
-
-
-
-# Government
-
-```{r plot_government}
-
-validation_data %>% 
-  filter(stakeholder == "government") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  mutate(across(c("sentiment_num", "benchmark"), scale)) %>% 
-  ungroup() %>% 
-  pivot_longer(-c(date, topic)) %>% 
-  ggplot(aes(date, value, color = name)) + 
-  geom_line() + 
-  facet_wrap(~topic, scale = "free")
-
-```
-
-## 
-
-```{r rolling_correlation_government}
-
-
-validation_data %>% 
-  filter(stakeholder == "government") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
-                          .before = params$roll_cor_win * 12, .complete = TRUE)) %>% 
-  ungroup() %>% 
-  ggplot(aes(date, roll_cor)) + 
-  geom_line() + 
-  facet_wrap(~topic, scale = "free")
-
-
-```
-
-## 
-
-```{r table_government_cors}
-
-validation_data %>% 
-  filter(stakeholder == "government") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  summarise(cor = cor(sentiment_num, benchmark)) %>% 
-  mutate(cor = round(cor, 2)) %>% 
-  ungroup() %>% 
-  gt() %>% 
-  tab_header(title = "Correlations for Government")
-
-```
-
-
-# Employees
+### Employees - Benchmark comparison
 
 ```{r plot_employees}
 
-validation_data %>% 
-  filter(stakeholder == "employees") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  mutate(across(c("sentiment_num", "benchmark"), scale)) %>% 
-  ungroup() %>% 
-  pivot_longer(-c(date, topic)) %>% 
-  ggplot(aes(date, value, color = name)) + 
-  geom_line() + 
+validation_data %>%
+  filter(stakeholder == "employees") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
+  mutate(across(c("sentiment_num", "benchmark"), scale)) %>%
+  ungroup() %>%
+  pivot_longer(-c(date, topic)) %>%
+  ggplot(aes(date, value, color = name)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 ```
 
-
-## 
+### Employees - Rolling correlation
 
 ```{r rolling_correlation_employees}
 
 
-validation_data %>% 
-  filter(stakeholder == "employees") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
+validation_data %>%
+  filter(stakeholder == "employees") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
   mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
-                          .before = params$roll_cor_win * 12, .complete = TRUE)) %>% 
-  ungroup() %>% 
-  ggplot(aes(date, roll_cor)) + 
-  geom_line() + 
+                          .before = params$general$roll_cor_win * 12, .complete = TRUE)) %>%
+  ungroup() %>%
+  ggplot(aes(date, roll_cor)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 
 ```
 
-## 
-
-```{r table_employees_cors}
-
-validation_data %>% 
-  filter(stakeholder == "employees") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  summarise(cor = cor(sentiment_num, benchmark)) %>% 
-  mutate(cor = round(cor, 2)) %>% 
-  ungroup() %>% 
-  gt() %>% 
-  tab_header(title = "Correlations for Employees")
-
-```
 
 
+## Employers
 
-# Employers
+### Employers - Benchmark comparison
 
 ```{r plot_employers}
 
-validation_data %>% 
-  filter(stakeholder == "employers") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  mutate(across(c("sentiment_num", "benchmark"), scale)) %>% 
-  ungroup() %>% 
-  pivot_longer(-c(date, topic)) %>% 
-  ggplot(aes(date, value, color = name)) + 
-  geom_line() + 
+validation_data %>%
+  filter(stakeholder == "employers") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
+  mutate(across(c("sentiment_num", "benchmark"), scale)) %>%
+  ungroup() %>%
+  pivot_longer(-c(date, topic)) %>%
+  ggplot(aes(date, value, color = name)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 ```
 
 
-## 
+### Employers - Rolling correlation
 
 ```{r rolling_correlation_employers}
 
 
-validation_data %>% 
-  filter(stakeholder == "employers") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
+validation_data %>%
+  filter(stakeholder == "employers") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
   mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
-                          .before = params$roll_cor_win * 12, .complete = TRUE)) %>% 
-  ungroup() %>% 
-  ggplot(aes(date, roll_cor)) + 
-  geom_line() + 
+                          .before = params$general$roll_cor_win * 12, .complete = TRUE)) %>%
+  ungroup() %>%
+  ggplot(aes(date, roll_cor)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 
 ```
 
-## 
-
-```{r table_employers_cors}
-
-validation_data %>% 
-  filter(stakeholder == "employers") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  summarise(cor = cor(sentiment_num, benchmark)) %>% 
-  mutate(cor = round(cor, 2)) %>% 
-  ungroup() %>% 
-  gt() %>% 
-  tab_header(title = "Correlations for Employers")
-
-```
 
 
-# Labor Unions
+
+## Labor Unions
+
+### Labor Unions - Benchmark comparison
 
 ```{r plot_labor_unions}
 
-validation_data %>% 
-  filter(stakeholder == "labor unions") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  mutate(across(c("sentiment_num", "benchmark"), scale)) %>% 
-  ungroup() %>% 
-  pivot_longer(-c(date, topic)) %>% 
-  ggplot(aes(date, value, color = name)) + 
-  geom_line() + 
+validation_data %>%
+  filter(stakeholder == "labor unions") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
+  mutate(across(c("sentiment_num", "benchmark"), scale)) %>%
+  ungroup() %>%
+  pivot_longer(-c(date, topic)) %>%
+  ggplot(aes(date, value, color = name)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 ```
 
 
-## 
+### Labor Unions - Rolling correlation
 
 ```{r rolling_correlation_labor_union}
 
 
-validation_data %>% 
-  filter(stakeholder == "labor unions") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
+validation_data %>%
+  filter(stakeholder == "labor unions") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
   mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
-                          .before = params$roll_cor_win * 12, .complete = TRUE)) %>% 
-  ungroup() %>% 
-  ggplot(aes(date, roll_cor)) + 
-  geom_line() + 
+                          .before = params$general$roll_cor_win * 12, .complete = TRUE)) %>%
+  ungroup() %>%
+  ggplot(aes(date, roll_cor)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 
 ```
 
-## 
-
-```{r table_labor_unions_cors}
-
-validation_data %>% 
-  filter(stakeholder == "labor unions") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  summarise(cor = cor(sentiment_num, benchmark)) %>% 
-  mutate(cor = round(cor, 2)) %>% 
-  ungroup() %>% 
-  gt() %>% 
-  tab_header(title = "Correlations for Labor Union")
-
-```
 
 
-# Unemployed
+## Unemployed
+
+### Unemployed - Benchmark comparison
 
 ```{r plot_unemployed}
 
-validation_data %>% 
-  filter(stakeholder == "unemployed") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  mutate(across(c("sentiment_num", "benchmark"), scale)) %>% 
-  ungroup() %>% 
-  pivot_longer(-c(date, topic)) %>% 
-  ggplot(aes(date, value, color = name)) + 
-  geom_line() + 
+validation_data %>%
+  filter(stakeholder == "unemployed") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
+  mutate(across(c("sentiment_num", "benchmark"), scale)) %>%
+  ungroup() %>%
+  pivot_longer(-c(date, topic)) %>%
+  ggplot(aes(date, value, color = name)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 ```
 
-## 
+### Unemployed - Rolling correlation
 
 ```{r rolling_correlation_unemployed}
 
 
-validation_data %>% 
-  filter(stakeholder == "unemployed") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
+validation_data %>%
+  filter(stakeholder == "unemployed") %>%
+  select(topic, comparison_df) %>%
+  unnest(cols = c("topic", "comparison_df")) %>%
+  group_by(topic) %>%
   mutate(roll_cor = slide2_dbl(sentiment_num, benchmark, .f = cor,
-                          .before = params$roll_cor_win * 12, .complete = TRUE)) %>% 
-  ungroup() %>% 
-  ggplot(aes(date, roll_cor)) + 
-  geom_line() + 
+                          .before = params$general$roll_cor_win * 12, .complete = TRUE)) %>%
+  ungroup() %>%
+  ggplot(aes(date, roll_cor)) +
+  geom_line() +
   facet_wrap(~topic, scale = "free")
 
 
 ```
 
-## 
 
-```{r table_unemployed_cors}
 
-validation_data %>% 
-  filter(stakeholder == "unemployed") %>% 
-  select(topic, comparison_df) %>% 
-  unnest(cols = c("topic", "comparison_df")) %>% 
-  group_by(topic) %>% 
-  summarise(cor = cor(sentiment_num, benchmark)) %>% 
-  mutate(cor = round(cor, 2)) %>% 
-  ungroup() %>% 
-  gt() %>% 
-  tab_header(title = "Correlations for Unemployed")
 
-```
+
+
 

@@ -39,7 +39,7 @@ params$topics = c(
 
 params$detrend_win = 2
 
-params$smooth_win = 3
+params$smooth_win = 5
 
 params$roll_cor_win = 5
 
@@ -163,10 +163,10 @@ sentiment_df %>%
   summarise(sentiment_num = mean(sentiment_num), .groups = "drop") %>% 
   ggplot(aes(sentiment_num,topic)) + 
   geom_col() +
-  geom_col(aes(fill = sentiment_num)) +
-  geom_text(aes(label = round(sentiment_num,2))) + 
-  scale_fill_gradientn(colors = c("red", "yellow", "green")) + 
-  xlab(NULL) + ylab(NULL) + 
+  geom_col() +
+  geom_text(aes(label = round(sentiment_num,2)), hjust = 1.25) + 
+  # scale_fill_gradientn(colors = c("red", "yellow", "green")) + 
+  xlab(NULL) + ylab(NULL) + ggtitle("Sentiment by topics") + 
   theme(axis.text.x = element_text(angle = 90)) + 
   NULL
 
@@ -192,6 +192,38 @@ validation_data %>%
 
 ```
 
+## Job vacancies
 
+```{r}
 
+validation_data %>% 
+  filter(topic == "job vacancies") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(across(c("sentiment_num", "benchmark"), ~scale(.)[,1])) %>%
+  ungroup() %>% 
+  pivot_longer(cols = c("sentiment_num", "benchmark")) %>% 
+  ggplot(aes(date, value, color = name)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scales = "free")
+
+```
+
+## Average wage
+
+```{r}
+validation_data %>% 
+  filter(topic == "average wage") %>% 
+  select(indicator, comparison_df) %>% 
+  unnest(comparison_df) %>% 
+  group_by(indicator) %>% 
+  mutate(across(c("sentiment_num", "benchmark"), ~scale(.)[,1])) %>%
+  ungroup() %>% 
+  pivot_longer(cols = c("sentiment_num", "benchmark")) %>% 
+  ggplot(aes(date, value, color = name)) + 
+  geom_line() + 
+  facet_wrap(~indicator, scales = "free")
+
+```
 
