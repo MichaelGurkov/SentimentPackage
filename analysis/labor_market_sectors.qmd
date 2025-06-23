@@ -23,19 +23,28 @@ devtools::load_all()
 
 ```{r params}
 
+appendix_run = FALSE
+
 params = list()
 
 
-params$topics = c(
+params$topic = c(
   'employment',
   'unemployment',
   'job vacancies',
-  'minimum wage',
   'working hours',
   'layoffs',
   'average wage',
   'deficit'
-) 
+)
+
+params$stakeholder = c(
+  "employees",
+  "employers",
+  "government",
+  "labor unions",
+  "unemployed"
+)
 
 params$detrend_win = 2
 
@@ -46,18 +55,18 @@ params$roll_cor_win = 5
 ```
 
 
-
 ```{r load_data}
 
-file_path = paste0("C:\\Users\\internet\\",
-                   "OneDrive - Bank Of Israel\\current_work",
-                   "\\real estate sentiment\\data\\labor_market\\sectors",
+file_path = paste0(Sys.getenv("USERPROFILE"),
+                   "\\OneDrive - Bank Of Israel\\current_work",
+                   "\\real estate sentiment\\data",
+                   "\\labor_market\\sectors\\hightech",
                    "\\labor_sentiment_hightech_4o-mini_25_05_2025.rds")
 
 
 
 
-sentiment_df = import_sentiment_df(file_path)
+sentiment_df = import_sentiment_df(file_path,params = params)
 
 
 ```
@@ -66,12 +75,14 @@ sentiment_df = import_sentiment_df(file_path)
 
 val_table_path = paste0(Sys.getenv("USERPROFILE"),
                         "\\OneDrive - Bank Of Israel\\",
-                        "current_work\\real estate sentiment\\data\\labor_market\\sectors",
+                        "current_work\\real estate sentiment\\data",
+                        "\\labor_market\\sectors\\hightech",
                         "\\labor_market_hightech_indicator_correspondence.csv")
 
 indicator_path = paste0(Sys.getenv("USERPROFILE"),
                         "\\OneDrive - Bank Of Israel\\",
-                        "current_work\\real estate sentiment\\data\\labor_market\\sectors\\")
+                        "current_work\\real estate sentiment\\data",
+                        "\\labor_market\\sectors\\hightech\\")
 
 
 validation_data = construct_validation_df(detrend_win = params$detrend_win,
@@ -224,6 +235,49 @@ validation_data %>%
   ggplot(aes(date, value, color = name)) + 
   geom_line() + 
   facet_wrap(~indicator, scales = "free")
+
+```
+
+
+
+# Appendix
+
+```{r import_data, eval=appendix_run}
+
+stakeholders_topics_df_file_path = paste0(Sys.getenv("USERPROFILE"),
+                   "\\OneDrive - Bank Of Israel\\current_work",
+                   "\\real estate sentiment\\data\\labor_market\\sectors",
+                   "\\hightech",
+                   "\\labor_sentiment_hightech_stakeholders_topics_4o-mini.rds")
+
+topics_df = sentiment_df
+
+stakeholders_topics_df = import_sentiment_df(stakeholders_topics_df_file_path,
+                                             params = params)
+
+
+```
+
+```{r compare_averages, eval=appendix_run}
+
+stakeholders_topics_df = stakeholders_topics_df %>% 
+  group_by(date = as.yearmon(date), topic, stakeholder) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop")
+
+topics_df = topics_df %>% 
+  group_by(date = as.yearmon(date), topic) %>% 
+  summarise(sentiment_num = mean(sentiment_num), .groups = "drop")
+
+
+temp_df = stakeholders_topics_df %>% 
+  left_join(topics_df, by = c("date", "topic"), suffix = c("_full", "_part"))
+
+temp_df %>% 
+  pivot_longer(cols = starts_with("sentiment")) %>% 
+  filter(complete.cases(.)) %>% 
+  ggplot(aes(date, value, color = name, group = 1)) + 
+  geom_line() + 
+  facet_grid(rows = vars(topic), cols = vars(stakeholder), scales = "free")
 
 ```
 

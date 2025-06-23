@@ -24,11 +24,24 @@ import_sentiment_df = function(file_path, params = NULL,
 
   sentiment_df = read_rds(file_path)
 
-  if(!is.null(params)){
+  sentiment_df = sentiment_df %>%
+    select(!contains("Unnamed"))
+
+
+  if("stakeholder" %in% names(params) & "stakeholder" %in% names(sentiment_df)){
 
     sentiment_df = sentiment_df %>%
-      inner_join(params$topics %>% as_tibble(), by = c("topic" = "value")) %>%
-      inner_join(params$stakeholders %>% as_tibble(), by = c("stakeholder" = "value"))
+      inner_join(params$stakeholder %>% as_tibble(),
+                 by = c("stakeholder" = "value"))
+
+  }
+
+
+  if("topic" %in% names(params) & "topic" %in% names(sentiment_df)){
+
+    sentiment_df = sentiment_df %>%
+      inner_join(params$topic %>% as_tibble(),
+                 by = c("topic" = "value"))
 
   }
 
