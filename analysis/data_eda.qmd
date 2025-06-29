@@ -9,6 +9,123 @@ execute:
     warning: false
 ---
 
+```{r params}
+
+run_lemmatization = FALSE
+
+```
+
+
+
+## Scoper data lemmatization and frequency
+
+
+```{r eval=run_lemmatization}
+
+if (Sys.getenv("USERPROFILE") == "C:\\Users\\internet"){
+  
+  python_path = paste0("C:\\Users\\internet\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+} else {
+  
+  python_path = paste0("C:\\Users\\Home\\AppData\\Local",
+                       "\\Programs\\Python\\Python312\\python.exe")
+}
+
+reticulate::use_python(python_path)
+
+```
+
+
+```{python import_libraries, eval=run_lemmatization}
+
+import pandas as pd
+
+import os
+
+import time
+import stanza
+import stopwordsiso as siso
+from collections import Counter
+
+
+# 4. Download Hebrew models (runs once)
+stanza.download('he')
+
+# 5. Build the Stanza pipeline for Hebrew
+nlp = stanza.Pipeline(
+    lang='he',
+    processors='tokenize,mwt,pos,lemma',
+    dir='D:/stanza_resources',
+    use_gpu=False  # set True if you enabled GPU in Colab
+)
+
+he_stopwords = siso.stopwords("he")
+
+```
+
+
+```{python load_data, eval=run_lemmatization}
+
+
+df = pd.read_csv(os.path.join(os.path.expanduser("~"),
+"OneDrive - Bank Of Israel\\current_work\\real estate sentiment\\twitter\\scoper_sample.csv"))
+
+```
+
+
+```{python define_count_lemmas, eval=run_lemmatization}
+
+def count_lemmas(text):
+    all_lemmas = []
+    for text in texts:
+      doc = nlp(text)
+      for sentence in doc.sentences:
+          for word in sentence.words:
+            if (
+                word.upos == 'NOUN'
+                # or word.upos == 'PRON'
+                and word.lemma not in he_stopwords
+            ):
+                  all_lemmas.append(word.lemma)
+
+      all_lemmas = [temp_lemma for temp_lemma in all_lemmas if len(temp_lemma) > 3]
+
+      freq = Counter(all_lemmas)
+
+    return(freq)
+
+```
+
+
+```{python lemmatize_texts, eval=run_lemmatization}
+
+texts = df['content'].dropna().sample(500)
+
+start = time.perf_counter()
+
+lemmas_counter = count_lemmas(texts)
+
+end = time.perf_counter()
+
+print(f"Time taken: {(end - start) / 60 :0.2f} minutes")
+
+```
+
+
+```{python save_lemmas_count_df, eval=run_lemmatization}
+
+
+lemmas_count_df = pd.DataFrame(lemmas_counter.items(), columns=['lemma', 'count'])
+
+lemmas_count_df.to_csv(os.path.join(os.path.expanduser("~"),
+"OneDrive - Bank Of Israel\\current_work\\real estate sentiment\\twitter\\lemmas_count.csv"), index=False, encoding='utf-8-sig')
+
+
+
+```
+
+## Classify scoper
 
 ```{r libraries}
 
@@ -19,6 +136,50 @@ library(gt)
 devtools::load_all()
 
 ```
+
+
+```{r load_scoper_data}
+
+scoper_sample = read_csv(paste0(Sys.getenv("USERPROFILE"),
+                                "\\OneDrive - Bank Of Israel\\current_work",
+                                "\\real estate sentiment\\twitter",
+                                "\\scoper_sample.csv"))
+
+```
+
+
+
+```{r load_lemmas}
+
+lemmas_count = read_csv(paste0(Sys.getenv("USERPROFILE"),
+                               "\\OneDrive - Bank Of Israel\\current_work",
+                               "\\real estate sentiment",
+                               "\\twitter\\lemmas_count.csv"))
+
+lemmas_count = lemmas_count %>% 
+  arrange(desc(count))
+
+code_words = lemmas_count %>% 
+  slice(1:10) %>% 
+  pull(lemma)
+
+code_words = code_words[c(1,3,6,9)]
+
+```
+
+
+```{r}
+
+scoper_sample = scoper_sample %>% 
+  mutate(relevance_ind = map_dbl(content, ~any(str_detect(., code_words[c(1,3,6,9)]))))
+
+
+scoper_sample %>% 
+  filter(is.na(relevance_ind))
+
+```
+
+
 
 
 ```{r params}
@@ -49,7 +210,6 @@ params$smooth_win = 3
 params$roll_cor_win = 5
 
 ```
-
 
 
 ```{r load_data}
